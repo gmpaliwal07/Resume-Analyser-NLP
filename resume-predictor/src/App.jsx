@@ -1,148 +1,146 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import './App.css';  // Import the CSS file
-import { LuUpload } from "react-icons/lu";
-import { GiCancel } from "react-icons/gi";
+import { useState } from 'react';
+import { Upload, FileText, X, ChevronRight, Sparkles } from "lucide-react";
 
-function App() {
+const App = () => {
   const [file, setFile] = useState(null);
-  const [fileName, setFileName] = useState('');  // New state for the file name
+  const [fileName, setFileName] = useState('');
   const [category, setCategory] = useState('');
   const [atsScore, setAtsScore] = useState(null);
   const [highlightedSkills, setHighlightedSkills] = useState([]);
   const [suggestedRole, setSuggestedRole] = useState('');
-  const [error, setError] = useState('');
-  const [showError, setShowError] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
     setFile(selectedFile);
-    setFileName(selectedFile.name);  
-
-    setError('');
-    setShowError(false);
-  };
-
-  const handleFileRemove = () => {
-    setFile(null);
-    setFileName('');  
-    setError('');
-    setShowError(false);
+    setFileName(selectedFile.name);
   };
 
   const handleSubmit = async () => {
-  
-    setError('');
-    setShowError(false);
-
-    if (!file) {
-      setError('Please upload a PDF file.');
-      setShowError(true);
-      return;
-    }
-
+    if (!file) return;
+    
+    setIsAnalyzing(true);
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const response = await axios.post('http://localhost:3000/predict', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const response = await fetch('http://localhost:3000/predict', {
+        method: 'POST',
+        body: formData,
       });
-
-      const { category, ats_score, highlighted_skills, suggested_role} = response.data;
-
-      setCategory(category);
-      setAtsScore(ats_score);
-      setHighlightedSkills(highlighted_skills);
-      setSuggestedRole(suggested_role);
-
-      setError('');
-      setShowError(false);  
-    } catch (err) {
-      setError('Error processing request.');
-      setShowError(true);
+      
+      const data = await response.json();
+      setCategory(data.category);
+      setAtsScore(data.ats_score);
+      setHighlightedSkills(data.highlighted_skills);
+      setSuggestedRole(data.suggested_role);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
-  // Smooth error message transition
-  useEffect(() => {
-    if (showError) {
-      const timer = setTimeout(() => {
-        setShowError(false);
-      }, 1000); 
-      return () => clearTimeout(timer);
-    }
-  }, [showError]);
-
   return (
-    <div className="flex flex-col bg-[#021526] p-9 h-screen ">
-      <div className="">
-        <h1 className="font-sans text-5xl text-white pb-6 font-semibold">Resume Analyzer</h1>
-        <h2 className="font-sans text-2xl text-white pb-8">Upload your resume to predict the Category</h2>
-      </div>
-
-      <div className="bg-gray-500 rounded-lg p-8 flex md:flex-row justify-between m-4 border-2 border-blue-400 flex-col ">
-        <div>
-          <label className="flex items-center space-x-4 cursor-pointer ">
-          <LuUpload size="8%" color='white' />
-            <input type="file" onChange={handleFileChange} className="hidden" />
-            <span className="border-4 border-[#021526] text-white font-semibold bg-gray-700 md:text-xl text-sm px-4 py-2 md:px-6 md:py-4 rounded-lg hover:bg-slate-800 hover:shadow-lg transition-all duration-300 ease-in-out">
-              Choose File
-            </span>
-          </label>
-          {fileName && (
-            <div className="flex items-center space-x-2 mt-5">
-            <p className="text-white md:text-2xl font-semibold text-xl">Selected file: {fileName}</p>
-            <button
-              onClick={handleFileRemove}
-              className="text-white focus:outline-none"
-            >
-              <GiCancel
-                size={"15%"}  
-                className="transition-transform duration-300 ease-in-out transform hover:scale-90 hover:text-red-500 pb-4  rounded-full md:p-2 "
-              />
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-cyan-500/10 animate-gradient-x" />
+      
+      <div className="relative max-w-6xl mx-auto p-6">
+        {/* Header */}
+        <div className="text-center mb-12 relative">
+          <div className="inline-block">
+            <h1 className="text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 animate-gradient-x pb-2">
+              Resume Flow
+            </h1>
+            <div className="h-1 w-full bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 rounded-full animate-gradient-x" />
           </div>
-          )}
+          <p className="text-gray-400 text-xl mt-4">Analyze your Resume</p>
         </div>
-        <div className='pt-10'>
-          <button onClick={handleSubmit} className="text-white font-semibold bg-gray-700  md:px-6 md:py-4  text-xl px-4 py-2 rounded-lg hover:bg-slate-800 hover:shadow-lg transition-all duration-300 ease-in-out border-4 border-[#021526] ">
-            Analyze Resume
-          </button>
-        </div>
-      </div>
 
-      <div className={`transition-opacity duration-300 ${showError ? 'opacity-100' : 'opacity-0'} ${error ? 'block' : 'hidden'}`}>
-        {error && <p className="font-sans text-xl text-red-600 font-semibold px-4 pt-4">{error}</p>}
-      </div>
-
-      <div className='bg-gray-500 m-4 p-4 rounded-lg h-1/2 border-2 border-blue-400'>
-        {category && (
-          <div>
-            
-            <h2 className='font-sans font-semibold text-white text-2xl md:text-3xl mb-4'>Category : {category}</h2>
-            <h2 className='font-sans font-semibold text-white text-2xl md:text-3xl mb-4'>
-  ATS Score : {atsScore ? (atsScore * 100).toFixed(2) + '%' : 'N/A'}
-</h2>
-
-            <div className='flex flex-col '>
-            <h2 className='font-sans font-semibold text-white text-2xl md:text-3xl mb-4'>Highlighted Skills :</h2>
-            <ul>
-              {highlightedSkills.map((skill, index) => (
-                <li key={index} className='font-sans font-semibold text-white text-2xl mb-2 uppercase'>{skill}</li>
-              ))}
-            </ul>
+        {/* Upload Section */}
+        <div className="bg-gray-800/50 backdrop-blur-xl border-0 relative overflow-hidden mb-8 p-8 rounded-lg">
+          <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 via-purple-500/5 to-cyan-500/5 animate-gradient-x" />
+          <div className="flex flex-col items-center space-y-6 relative">
+            <label className="w-full max-w-md flex flex-col items-center justify-center h-40 border-2 border-dashed rounded-xl cursor-pointer border-gray-600 hover:border-gray-500 transition-all relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 via-purple-500/5 to-cyan-500/5 animate-gradient-x" />
+              <div className="flex flex-col items-center justify-center space-y-2">
+                <Sparkles className="w-12 h-12 text-gray-400 transition-colors" />
+                <p className="text-gray-400 transition-colors">
+                  {fileName || "Drop your resume here"}
+                </p>
               </div>
-           
-            <h2 className='font-sans font-semibold text-white text-2xl md:text-3xl mb-4 uppercase mt-6'>Suggested Role : {suggestedRole} </h2>
+              <input type="file" onChange={handleFileChange} className="hidden" accept=".pdf" />
+            </label>
 
+            {fileName && (
+              <button
+                onClick={handleSubmit}
+                className="px-8 py-3 rounded-lg bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 animate-gradient-x text-white font-medium"
+              >
+                <span className="flex items-center space-x-2">
+                  <span>Analyze Resume</span>
+                  <ChevronRight className="w-4 h-4 transition-transform" />
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Results Section */}
+        {category && (
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* ATS Score */}
+            <div className="bg-gray-800/50 backdrop-blur-xl border-0 relative overflow-hidden p-6 rounded-lg">
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 via-purple-500/5 to-cyan-500/5 animate-gradient-x" />
+              <h3 className="text-xl font-semibold text-gray-200 mb-4">Match Score</h3>
+              <div className="space-y-4">
+                <div className="h-4 bg-gray-700/50 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 animate-gradient-x"
+                    style={{ width: `${atsScore * 100}%` }}
+                  />
+                </div>
+                <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 animate-gradient-x">
+                  {(atsScore * 100).toFixed(1)}%
+                </p>
+              </div>
+            </div>
+
+            {/* Category & Role */}
+            <div className="bg-gray-800/50 backdrop-blur-xl border-0 relative overflow-hidden p-6 rounded-lg">
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 via-purple-500/5 to-cyan-500/5 animate-gradient-x" />
+              <h3 className="text-xl font-semibold text-gray-200 mb-4">Profile</h3>
+              <div className="space-y-4">
+                <div className="bg-gray-900/50 p-4 rounded-lg">
+                  <p className="text-gray-400">Category</p>
+                  <p className="text-xl font-semibold text-gray-200">{category}</p>
+                </div>
+                <div className="bg-gray-900/50 p-4 rounded-lg">
+                  <p className="text-gray-400">Best Fit Role</p>
+                  <p className="text-xl font-semibold text-gray-200">{suggestedRole}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Skills */}
+            <div className="md:col-span-2 bg-gray-800/50 backdrop-blur-xl border-0 relative overflow-hidden p-6 rounded-lg">
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 via-purple-500/5 to-cyan-500/5 animate-gradient-x" />
+              <h3 className="text-xl font-semibold text-gray-200 mb-4">Key Skills</h3>
+              <div className="flex flex-wrap gap-2">
+                {highlightedSkills.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="px-4 py-2 rounded-lg bg-gray-900/50 text-gray-300 hover:text-gray-100 transition-colors"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
-}
+};
 
 export default App;
